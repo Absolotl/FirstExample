@@ -2,6 +2,8 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
+#include "Tile.hpp"
+#include "Movement.hpp"
 
 int main()
 {
@@ -10,16 +12,12 @@ int main()
 	auto window = sf::RenderWindow(sf::VideoMode({SCREEN_WIDTH, SCREEN_HEIGHT}), "CMake SFML Project");
 	window.setFramerateLimit(60);
 
-	float x = 0;
-	float y = 0;
-	float addX = 0.0F;
-	float addY = 0.0F;
-	float horizontalMovement = M_PI;
+	float textX = 0;
+	float textY = 0;
+	float textAddX = 2.0F;
+	float textAddY = 2.0F;
 	float verticalMovement = M_PI;
-	bool isMoving = false;
 	bool isSprinting = false;
-	float speedFactorRight = 0.9;
-	float speedFactorLeft = 1.1;
 	bool isFalling = true;
 	bool isJumping = false;
 	bool isOnGround = false;
@@ -28,19 +26,68 @@ int main()
 	int jumpCounter = 0;
 	bool isUpKeyPressed = false;
 
-	sf::Vector2f vector2f = sf::Vector2f(x, y);
-
+	sf::Vector2f vector2f = sf::Vector2f(textX, textY);
 	sf::Font font = sf::Font("res/Raleway-Regular.ttf");
 	sf::Text text(font, "Hello\nWorld!", 50);
 	text.setPosition(vector2f);
 	text.setFillColor(sf::Color(0x88ffff));
-	text.setPosition(sf::Vector2f(x, y));
+	// text.setPosition(sf::Vector2f(x, y));
 
 	int groundX = 0;
-	sf::Texture texture("res/textures/ground1.png", false, sf::IntRect({0, 0}, {32, 32}));
-	sf::Sprite sprite(texture);
-	sprite.setPosition(sf::Vector2f(groundX, SCREEN_HEIGHT - 32));
-	// std::vector<sf::Sprite> ground;
+	sf::Texture grassTexture("res/textures/ground1.png", false, sf::IntRect({0, 0}, {32, 32}));
+	sf::Texture emptyTexture(sf::Vector2u(32, 32));
+	sf::Sprite grass(grassTexture);
+	sf::Sprite abyss(emptyTexture);
+
+	grass.setPosition(sf::Vector2f(groundX, SCREEN_HEIGHT - 32));
+	Tile groundGrass(&grass, true);
+	Tile abyssGround(&abyss, false);
+	Tile currentTile = groundGrass;
+
+	uint16_t tilesPerHeight = window.getSize().y / 32;
+	uint16_t tilesPerWidth = window.getSize().x / 32;
+
+	std::vector<Tile> ground;
+	for (short i = 0; i < window.getSize().x / 32 / 2; i++)
+	{
+		ground.push_back(groundGrass);
+	}
+	for (short i = window.getSize().x / 32 / 2 + 1; i < window.getSize().x / 32; i++)
+	{
+		ground.push_back(abyssGround);
+	}
+
+	std::vector<std::vector<uint8_t>> tiles{tilesPerWidth, std::vector<uint8_t>(tilesPerHeight, 0)};
+	bool tile = 1;
+	for (uint16_t i = 0; i < tilesPerWidth; i++)
+	{
+		for (uint16_t j = 0; j < tilesPerHeight; j++)
+		{
+			if (/*i % 6 &&*/ j == 32)
+			{
+				tile = 1;
+			}
+			else
+			{
+				tile = 0;
+			}
+			tiles[i][j] = tile;
+		}
+	}
+
+	float x = 0;
+	float y = 0;
+	float addX = 0.0F;
+	float addY = 0.0F;
+	sf::RectangleShape rectangle({64.0f, 128.0f});
+	rectangle.setFillColor(sf::Color::Cyan);
+
+	uint16_t playerPositionX = rectangle.getPosition().x / 32;
+	uint16_t playerPositionY = rectangle.getPosition().y / 32;
+
+	Movement movement(window.getSize());
+	bool goingRight = false;
+	bool goingLeft = false;
 
 	while (window.isOpen())
 	{
@@ -51,163 +98,80 @@ int main()
 				window.close();
 			}
 		}
-		// if (x >= SCREEN_WIDTH - text.getGlobalBounds().size.x || x <= 0)
-		// {
-		// 	addX *= -1;
-		// }
-		// if (y >= SCREEN_HEIGHT - text.getGlobalBounds().size.y || y <= 0)
-		// {
-		// 	addY *= -1;
-		// }
+		textX += textAddX;
+		textY += textAddY;
+
+		// Horizontal
+		if (textX >= SCREEN_WIDTH - text.getGlobalBounds().size.x || textX <= 0)
+			textAddX *= -1;
+
+		if (textY >= SCREEN_HEIGHT - text.getGlobalBounds().size.y || textY <= 0)
+			textAddY *= -1;
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl))
-		{
-			speedFactorRight = 0.5;
-			speedFactorLeft = 1.5;
-			isSprinting = true;
-		}
+			movement.sprint();
 		else
-		{
-			// speedFactorRight = 0.75;
-			// speedFactorLeft = 1.25;
-			speedFactorRight = 0.9;
-			speedFactorLeft = 1.1;
-			isSprinting = false;
-		}
+			movement.walk();
+
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
+			goingLeft = true;
+
+		else
+			goingLeft = false;
+
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
-		{
-			isMoving = true;
+			goingRight = true;
 
-			if (horizontalMovement > M_PI * speedFactorRight)
-			{
-				if (horizontalMovement < M_PI)
-				{
-					horizontalMovement -= 0.03;
-				}
-				else
-				{
-					horizontalMovement -= 0.06;
-				}
-			}
-			else
-			{
-				horizontalMovement += 0.03;			
-			}
-		}
-		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
-		{
-			isMoving = true;
-
-			if (horizontalMovement < M_PI * speedFactorLeft)
-			{
-				if (horizontalMovement > M_PI)
-				{
-					horizontalMovement += 0.03;
-				}
-				else
-				{
-					horizontalMovement += 0.06;
-				}
-			}
-			else
-			{
-				horizontalMovement -= 0.03;			
-			}
-		}
-		else if (horizontalMovement < M_PI)
-		{
-			isMoving = false;
-			horizontalMovement += 0.03;
-		}
-		else if (horizontalMovement > M_PI)
-		{
-			isMoving = false;
-			horizontalMovement -= 0.03;
-		}
-
-		if (horizontalMovement < M_PI + 0.03 && horizontalMovement > M_PI - 0.03 && !isMoving)
-		{
-			addX = 0;
-		}
 		else
-		{
-			addX = std::sin(horizontalMovement) * 10;
-		}
-		x += addX;
+			goingRight = false;
+
+		x += movement.move(goingLeft, goingRight, rectangle);
 
 		// Vertical
-		if (isFalling && verticalMovement >= M_PI_2)
-		{
-			verticalMovement -= 0.05;
-		}
-
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
-		{
-			if (!isUpKeyPressed && isOnGround)
-			{
-				isUpKeyPressed = true;
-				isFalling = false;
-				isJumping = true;
-				isOnGround = false;
-				++jumpCounter;
-			}
-			else if (!isUpKeyPressed && jumpCounter == 1)
-			{
-				isUpKeyPressed = true;
-				isFalling = false;
-				isJumping = true;
-				isOnGround = false;
-				addY = 0;
-				verticalMovement = M_PI;
-				++jumpCounter;
-			}
-		}
+			movement.jump(true);
 		else
+			movement.jump(false);
+
+		y += movement.determineVerticalMovement(rectangle, tiles[playerPositionY][playerPositionX]);
+
+		if (rectangle.getPosition().y > window.getSize().y)
 		{
-			isUpKeyPressed = false;
+			x = y = 0;
 		}
 
-		if (isFalling && text.getPosition().y + text.getLocalBounds().size.y >= sprite.getPosition().y)
-		{
-			isFalling = false;
-			isJumping = false;
-			isOnGround = true;
-		}
-
-		if (isJumping && verticalMovement >= M_PI && verticalMovement < M_PI * 1.25)
-		{
-			verticalMovement += 0.15;
-		}
-
-		if (verticalMovement >= M_PI * 1.25)
-		{
-			isFalling = true;
-			isJumping = false;
-			isOnGround = false;
-		}
-
-		if (isOnGround)
-		{
-			jumpCounter = 0;
-			addY = 0;
-			verticalMovement = M_PI;
-		}
-		else
-		{
-			addY = std::sin(verticalMovement) * verticalMovementModifier;
-		}
-
-		y += addY;
-
-		text.setPosition(sf::Vector2f(x, y));
+		text.setPosition(sf::Vector2f(textX, textY));
+		rectangle.setPosition(sf::Vector2f(x, y));
 		window.clear();
 		window.draw(text);
-		for (int i = 0; i < 30; i++)
+		window.draw(rectangle);
+
+		// for (auto &&tilesHorizontal : tiles)
+		// {
+		// 	for (auto &&tile : tilesHorizontal)
+		// 	{
+		// 		if (tile == 1)
+		// 		{
+		// 			grass.setPosition(sf::Vector2f());
+		// 			window.draw(grass);
+		// 		}
+		// 	}
+		// }
+		for (uint8_t i = 0; i < tilesPerWidth; i++)
 		{
-			sprite.setPosition(sf::Vector2f(groundX, SCREEN_HEIGHT - 32));
-			window.draw(sprite);
-			groundX = 32 * i;
+			for (uint8_t j = 0; j < tilesPerHeight; j++)
+			{
+				grass.setPosition(sf::Vector2f(tilesPerWidth * 32, tilesPerHeight * 32));
+				window.draw(grass);
+			}
 		}
+
+		// for (int i = 0; i < 30; i++)
+		// {
+		// 	sprite.setPosition(sf::Vector2f(groundX, SCREEN_HEIGHT - 32));
+		// 	window.draw(sprite);
+		// 	groundX = 32 * i;
+		// }
 		window.display();
 	}
 }
