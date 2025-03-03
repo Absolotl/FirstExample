@@ -95,82 +95,81 @@ int main()
 		{
 			if (event->is<sf::Event::Closed>())
 				window.close();
-			}
 		}
-		textX += textAddX;
-		textY += textAddY;
-
-		// Horizontal
-		if (textX >= SCREEN_WIDTH - text.getGlobalBounds().size.x || textX <= 0)
-			textAddX *= -1;
-
-		if (textY >= SCREEN_HEIGHT - text.getGlobalBounds().size.y || textY <= 0)
-			textAddY *= -1;
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl))
-			movement.sprint();
-		else
-			movement.walk();
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
-			goingLeft = true;
-
-		else
-			goingLeft = false;
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
-			goingRight = true;
-
-		else
-			goingRight = false;
-
-		x += movement.move(goingLeft, goingRight, rectangle);
-
-		// Vertical
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
-			movement.jump(true);
-		else
-			movement.jump(false);
-
-		y += movement.determineVerticalMovement(rectangle, tiles[playerPositionY][playerPositionX]);
-
-		if (rectangle.getPosition().y > window.getSize().y)
-		{
-			x = y = 0;
-		}
-
-		text.setPosition(sf::Vector2f(textX, textY));
-		rectangle.setPosition(sf::Vector2f(x, y));
-		window.clear();
-		window.draw(text);
-		window.draw(rectangle);
-
-		// for (auto &&tilesHorizontal : tiles)
-		// {
-		// 	for (auto &&tile : tilesHorizontal)
-		// 	{
-		// 		if (tile == 1)
-		// 		{
-		// 			grass.setPosition(sf::Vector2f());
-		// 			window.draw(grass);
-		// 		}
-		// 	}
-		// }
-		for (uint8_t i = 0; i < tilesPerWidth; i++)
-		{
-			for (uint8_t j = 0; j < tilesPerHeight; j++)
-			{
-				grass.setPosition(sf::Vector2f(tilesPerWidth * 32, tilesPerHeight * 32));
-				window.draw(grass);
-			}
-		}
-
-		// for (int i = 0; i < 30; i++)
-		// {
-		// 	sprite.setPosition(sf::Vector2f(groundX, SCREEN_HEIGHT - 32));
-		// 	window.draw(sprite);
-		// 	groundX = 32 * i;
-		// }
-		window.display();
 	}
+	textX += textAddX;
+	textY += textAddY;
+
+	// Horizontal
+	if (textX >= SCREEN_WIDTH - text.getGlobalBounds().size.x || textX <= 0)
+		textAddX *= -1;
+
+	if (textY >= SCREEN_HEIGHT - text.getGlobalBounds().size.y || textY <= 0)
+		textAddY *= -1;
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl))
+		movement.sprint();
+	else
+		movement.walk();
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
+		goingLeft = true;
+
+	else
+		goingLeft = false;
+
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
+		goingRight = true;
+
+	else
+		goingRight = false;
+
+	x += movement.move(goingLeft, goingRight, rectangle);
+
+	// Vertical
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
+		movement.jump(true);
+	else
+		movement.jump(false);
+
+	y += movement.determineVerticalMovement(rectangle, tiles[playerPositionY][playerPositionX]);
+
+	if (rectangle.getPosition().y > window.getSize().y)
+	{
+		x = y = 0;
+	}
+
+	text.setPosition(sf::Vector2f(textX, textY));
+	rectangle.setPosition(sf::Vector2f(x, y));
+	window.clear();
+	window.draw(text);
+	window.draw(rectangle);
+
+	// for (auto &&tilesHorizontal : tiles)
+	// {
+	// 	for (auto &&tile : tilesHorizontal)
+	// 	{
+	// 		if (tile == 1)
+	// 		{
+	// 			grass.setPosition(sf::Vector2f());
+	// 			window.draw(grass);
+	// 		}
+	// 	}
+	// }
+	for (uint8_t i = 0; i < tilesPerWidth; i++)
+	{
+		for (uint8_t j = 0; j < tilesPerHeight; j++)
+		{
+			grass.setPosition(sf::Vector2f(tilesPerWidth * 32, tilesPerHeight * 32));
+			window.draw(grass);
+		}
+	}
+
+	// for (int i = 0; i < 30; i++)
+	// {
+	// 	sprite.setPosition(sf::Vector2f(groundX, SCREEN_HEIGHT - 32));
+	// 	window.draw(sprite);
+	// 	groundX = 32 * i;
+	// }
+	window.display();
 }
