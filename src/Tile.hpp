@@ -3,15 +3,24 @@ class Tile
 {
 	private:
 	sf::Sprite *sprite;
-	bool isSolid;
+	bool solid;
+	uint16_t verticalPosition;
+	uint16_t horizontalPosition;
 
 	public:
-	Tile(sf::Sprite *_sprite, bool isSolid)
+	Tile(sf::Sprite *_sprite, bool isSolid, uint16_t _verticalPosition, uint16_t _horizontalPosition)
 	{
 		sprite = _sprite;
-		this->isSolid = isSolid;
+		this->solid = isSolid;
+		verticalPosition = _verticalPosition;
+		horizontalPosition = _horizontalPosition;
 	}
 
+
 	sf::Sprite getSprite() { return *sprite; }
-	bool getIsSolid() { return isSolid; }
+	bool isSolid() { return this->solid; }
+	uint16_t getLeft() { return horizontalPosition; }
+	uint16_t getRight() { return horizontalPosition + 31; }
+	uint16_t getTop() { return verticalPosition; }
+	uint16_t getBottom() { return verticalPosition + 31; }
 };

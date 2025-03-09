@@ -8,7 +8,7 @@
 int main()
 {
 	const auto SCREEN_WIDTH = 1920u;
-	const auto SCREEN_HEIGHT = 1080u;
+	const auto SCREEN_HEIGHT = 1024u;
 	auto window = sf::RenderWindow(sf::VideoMode({SCREEN_WIDTH, SCREEN_HEIGHT}), "CMake SFML Project");
 	window.setFramerateLimit(60);
 
@@ -26,52 +26,63 @@ int main()
 	int jumpCounter = 0;
 	bool isUpKeyPressed = false;
 
-	sf::Vector2f vector2f = sf::Vector2f(textX, textY);
-	sf::Font font = sf::Font("res/Raleway-Regular.ttf");
-	sf::Text text(font, "Hello\nWorld!", 50);
-	text.setPosition(vector2f);
-	text.setFillColor(sf::Color(0x88ffff));
+	// sf::Vector2f vector2f = sf::Vector2f(textX, textY);
+	sf::Font font = sf::Font("../../res/Raleway-Regular.ttf");
+	// sf::Text text(font, "Hello\nWorld!", 50);
+	// text.setPosition(vector2f);
+	// text.setFillColor(sf::Color(0x88ffff));
 	// text.setPosition(sf::Vector2f(x, y));
 
 	int groundX = 0;
-	sf::Texture grassTexture("res/textures/ground1.png", false, sf::IntRect({0, 0}, {32, 32}));
+	sf::Texture grassTexture("../../res/textures/bricks_red.png", false, sf::IntRect({0, 0}, {32, 32}));
 	sf::Texture emptyTexture(sf::Vector2u(32, 32));
 	sf::Sprite grass(grassTexture);
 	sf::Sprite abyss(emptyTexture);
 
 	grass.setPosition(sf::Vector2f(groundX, SCREEN_HEIGHT - 32));
-	Tile groundGrass(&grass, true);
-	Tile abyssGround(&abyss, false);
-	Tile currentTile = groundGrass;
+	Tile currentTile(&abyss, false, 0, 0);
 
 	uint16_t tilesPerHeight = window.getSize().y / 32;
 	uint16_t tilesPerWidth = window.getSize().x / 32;
 
-	std::vector<Tile> ground;
-	for (short i = 0; i < window.getSize().x / 32 / 2; i++)
+	std::vector<std::vector<Tile>> tileGrid;
+	for (uint8_t y = 0; y <= tilesPerHeight; y++)
 	{
-		ground.push_back(groundGrass);
-	}
-	for (short i = window.getSize().x / 32 / 2 + 1; i < window.getSize().x / 32; i++)
-	{
-		ground.push_back(abyssGround);
-	}
-
-	std::vector<std::vector<uint8_t>> tiles{tilesPerWidth, std::vector<uint8_t>(tilesPerHeight, 0)};
-	bool tile = 1;
-	for (uint16_t i = 0; i < tilesPerWidth; i++)
-	{
-		for (uint16_t j = 0; j < tilesPerHeight; j++)
+		std::vector<Tile> columnTiles;
+		for (uint8_t x = 0; x <= tilesPerWidth; x++)
 		{
-			if (/*i % 6 &&*/ j == 32)
+			if (y == tilesPerHeight - 1 && x < tilesPerWidth / 2)
 			{
-				tile = 1;
+				columnTiles.push_back(Tile(&grass, true, y * 32, x * 32));
+			}
+			else if (y == tilesPerHeight - 2 && x == tilesPerWidth / 2 - 1)
+			{
+				columnTiles.push_back(Tile(&grass, true, y * 32, x * 32));
+			}
+			else if (y == tilesPerHeight - 2 && x == tilesPerWidth / 2 - 10)
+			{
+				columnTiles.push_back(Tile(&grass, true, y * 32, x * 32));
+			}
+			else if (y == tilesPerHeight - 10 && x == tilesPerWidth / 2 - 5)
+			{
+				columnTiles.push_back(Tile(&grass, true, y * 32, x * 32));
 			}
 			else
 			{
-				tile = 0;
+				columnTiles.push_back(Tile(&abyss, false, y * 32, x * 32));
 			}
-			tiles[i][j] = tile;
+		}
+		tileGrid.push_back(columnTiles);
+	}
+	std::vector<std::vector<uint16_t>> collisionSpace = std::vector<std::vector<uint16_t>>(window.getSize().y, std::vector<uint16_t>(window.getSize().x, 0));
+	for (uint16_t y = 0; y < window.getSize().y; y++)
+	{
+		for (uint16_t x = 0; x < window.getSize().x; x++)
+		{
+			if (tileGrid[y / 32][x / 32].isSolid())
+			{
+				collisionSpace[y][x] = 1;
+			}
 		}
 	}
 
@@ -79,15 +90,25 @@ int main()
 	float y = 0;
 	float addX = 0.0F;
 	float addY = 0.0F;
-	sf::RectangleShape rectangle({64.0f, 128.0f});
-	rectangle.setFillColor(sf::Color::Cyan);
+	sf::RectangleShape player({64.0f, 128.0f});
+	player.setFillColor(sf::Color::Cyan);
 
-	uint16_t playerPositionX = rectangle.getPosition().x / 32;
-	uint16_t playerPositionY = rectangle.getPosition().y / 32;
+	uint16_t playerPositionX = 0;
+	uint16_t playerPositionY = 0;
 
-	Movement movement(window.getSize());
+	Movement *movement = new Movement();
 	bool goingRight = false;
 	bool goingLeft = false;
+
+	// UI
+	std::string positionString = "X: " + std::to_string(playerPositionX) + " Y: " + std::to_string(playerPositionY);
+	sf::Text debugPosition(font, positionString, 50);
+	debugPosition.setPosition(sf::Vector2f(0, 0));
+	sf::Vector2i localMousePosition = sf::Mouse::getPosition(window);
+	positionString = "X: " + std::to_string(localMousePosition.x / 32) + " Y: " + std::to_string(localMousePosition.y / 32);
+	sf::Text debugMousePosition(font, positionString, 50);
+	debugMousePosition.setPosition(sf::Vector2f(debugPosition.getLocalBounds().size.x + 48, 0));
+	debugMousePosition.setFillColor(sf::Color(0xffffdd));
 
 	while (window.isOpen())
 	{
@@ -98,80 +119,138 @@ int main()
 				window.close();
 			}
 		}
-		textX += textAddX;
-		textY += textAddY;
 
-		// Horizontal
-		if (textX >= SCREEN_WIDTH - text.getGlobalBounds().size.x || textX <= 0)
-			textAddX *= -1;
-
-		if (textY >= SCREEN_HEIGHT - text.getGlobalBounds().size.y || textY <= 0)
-			textAddY *= -1;
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl))
-			movement.sprint();
-		else
-			movement.walk();
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
-			goingLeft = true;
-
-		else
-			goingLeft = false;
-
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
-			goingRight = true;
-
-		else
-			goingRight = false;
-
-		x += movement.move(goingLeft, goingRight, rectangle);
-
-		// Vertical
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
-			movement.jump(true);
-		else
-			movement.jump(false);
-
-		y += movement.determineVerticalMovement(rectangle, tiles[playerPositionY][playerPositionX]);
-
-		if (rectangle.getPosition().y > window.getSize().y)
-		{
-			x = y = 0;
-		}
-
-		text.setPosition(sf::Vector2f(textX, textY));
-		rectangle.setPosition(sf::Vector2f(x, y));
 		window.clear();
-		window.draw(text);
-		window.draw(rectangle);
-
-		// for (auto &&tilesHorizontal : tiles)
-		// {
-		// 	for (auto &&tile : tilesHorizontal)
-		// 	{
-		// 		if (tile == 1)
-		// 		{
-		// 			grass.setPosition(sf::Vector2f());
-		// 			window.draw(grass);
-		// 		}
-		// 	}
-		// }
-		for (uint8_t i = 0; i < tilesPerWidth; i++)
+		try
 		{
-			for (uint8_t j = 0; j < tilesPerHeight; j++)
-			{
-				grass.setPosition(sf::Vector2f(tilesPerWidth * 32, tilesPerHeight * 32));
-				window.draw(grass);
-			}
-		}
+			positionString = "X: " + std::to_string(playerPositionX) + " Y: " + std::to_string(playerPositionY);
+			debugPosition.setString(positionString);
+			localMousePosition = sf::Mouse::getPosition(window);
+			positionString = "X: " + std::to_string(localMousePosition.x / 32) + " Y: " + std::to_string(localMousePosition.y / 32);
+			debugMousePosition.setString(positionString);
 
-		// for (int i = 0; i < 30; i++)
-		// {
-		// 	sprite.setPosition(sf::Vector2f(groundX, SCREEN_HEIGHT - 32));
-		// 	window.draw(sprite);
-		// 	groundX = 32 * i;
-		// }
+			// Horizontal
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl))
+				movement->sprint();
+			else
+				movement->walk();
+
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
+				goingLeft = true;
+
+			else
+				goingLeft = false;
+
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
+				goingRight = true;
+
+			else
+				goingRight = false;
+
+			addX = movement->move(goingLeft, goingRight);
+
+			if (
+				!tileGrid[(player.getPosition().y + 128) / 32][player.getPosition().x / 32].isSolid() &&
+				!tileGrid[(player.getPosition().y + 128) / 32][(player.getPosition().x + 31) /32].isSolid() &&
+				!tileGrid[(player.getPosition().y + 128) / 32][(player.getPosition().x + 63) /32].isSolid()
+			)
+			{
+				movement->falling();
+			}
+			
+
+			// Vertical
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
+				movement->jump(true);
+			else
+				movement->jump(false);
+
+			addY = movement->determineVerticalMovement();
+
+			if (player.getPosition().y > window.getSize().y)
+			{
+				x = y = 0;
+			}
+
+			// Collision detection
+			if (addY > 0)
+			{
+				// Falling
+				auto newPosition = player.getPosition() + sf::Vector2f(addX, addY + 128);
+				for (uint8_t i = 0; i < 64; i++)
+				{
+					if (collisionSpace[newPosition.y][newPosition.x + i] == 1)
+					{
+						addY = tileGrid[newPosition.y / 32][newPosition.x / 32].getTop() - (player.getPosition().y + 128);
+						movement->hitGround();
+					}
+				}
+			}
+			else if (addY < 0)
+			{
+				// Jumping
+				auto newPosition = player.getPosition() + sf::Vector2f(addX, addY);
+				for (uint8_t i = 0; i < 64; i++)
+				{
+					if (collisionSpace[newPosition.y][newPosition.x + i] == 1)
+					{
+						addY = tileGrid[newPosition.y / 32][newPosition.x / 32].getBottom() - (player.getPosition().y);
+						movement->hitCeiling();
+					}
+				}
+			}
+			if (addX > 0) // Going right
+			{
+				auto newPosition = player.getPosition() + sf::Vector2f(addX + 64, addY);
+				for (uint8_t i = 0; i < 128; i++)
+				{
+					if (collisionSpace[newPosition.y + i][newPosition.x] == 1)
+					{
+						addX = tileGrid[newPosition.y / 32][newPosition.x / 32].getLeft() - (player.getPosition().x + 64);
+						movement->hitRightWall();
+					}
+				}
+			}
+			else if (addX < 0) // Going left
+			{
+				auto newPosition = player.getPosition() + sf::Vector2f(addX, addY);
+				
+				for (uint8_t i = 0; i < 128; i++)
+				{
+					if (collisionSpace[newPosition.y + i][newPosition.x] == 1)
+					{
+						addX = tileGrid[newPosition.y / 32][newPosition.x / 32].getRight() - (player.getPosition().x);
+						movement->hitLeftWall();
+					}
+				}
+			}
+
+			x += addX;
+			y += addY;
+			playerPositionX = x / 32;
+			playerPositionY = y / 32;
+
+			player.setPosition(sf::Vector2f(x, y));
+			window.draw(debugPosition);
+			window.draw(debugMousePosition);
+
+			for (auto &&tilesHorizontal : tileGrid)
+			{
+				for (auto &&tile : tilesHorizontal)
+				{
+					if (tile.isSolid())
+					{
+						grass.setPosition(sf::Vector2f(tile.getLeft(), tile.getTop()));
+						window.draw(grass);
+					}
+				}
+			}
+			window.draw(player);
+		}
+		catch (const std::exception &e)
+		{
+			std::cerr << e.what() << '\n';
+		}
 		window.display();
 	}
 }
